@@ -126,5 +126,17 @@ def max_like_B():
         print res
 
 if __name__ == '__main__':
-    #analysis_B(do_logunif=False)
-    max_like_B()
+    import argparse
+    parser = argparse.ArgumentParser(
+            description='perform MCMC for hairs',
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--log-unif', help='log-uniform priors', action='store_true')
+    parser.add_argument('--max-like', help='maximum-likelihood estimation')
+    args = parser.parse_args()
+
+    if args.max_like:
+        max_like_B()
+    elif args.log_unif:
+        analysis_B(do_logunif=True)
+    else:
+        analysis_B(do_logunif=False)
