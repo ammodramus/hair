@@ -20,7 +20,6 @@ import scipy.stats as st
 # MODEL B
 #################
 
-
 def log_prior_B_uniform(params, *args):
     ''' uniform in f, N1, and N2 '''
     f, N1, N2 = params
@@ -78,7 +77,7 @@ def analysis_B(do_logunif):
     allh.set_index(['individual_id', 'idx'], inplace=True)
     somf = pd.read_excel('indiv_cheek_hair.xlsx', 0)
     allh = allh.reset_index().merge(somf, left_on='individual_id', right_on='individual_id').set_index(['individual_id', 'idx'])
-    model_args = zip(*allh.groupby(level=1).apply(lambda x: [x['hair'].values, x['cheek'].iloc[0], x['blood'].iloc[0]]).tolist())
+    model_args = zip(*allh.groupby(level=0).apply(lambda x: [x['hair'].values, x['cheek'].iloc[0], x['blood'].iloc[0]]).tolist())
 
 
     with np.errstate(all='ignore'):
@@ -107,7 +106,7 @@ def analysis_sims(do_logunif):
     unif_str = 'logunif' if do_logunif else 'unif'
     allh = pd.read_csv('sim_hairs_data.tsv', sep='\t')
     allh.set_index(['individual_id', 'idx'], inplace=True)
-    model_args = zip(*allh.groupby(level=1).apply(lambda x: [x['hair'].values, x['cheek'].iloc[0], x['blood'].iloc[0]]).tolist())
+    model_args = zip(*allh.groupby(level=0).apply(lambda x: [x['hair'].values, x['cheek'].iloc[0], x['blood'].iloc[0]]).tolist())
 
 
     with np.errstate(all='ignore'):
@@ -132,21 +131,26 @@ def analysis_sims(do_logunif):
 
 
 
-def max_like_B():
-    allh = pd.read_excel('all_hair_freqs.xlsx', 0)
-    del allh['som']
-    allh['idx'] = np.concatenate(allh.groupby('individual_id').apply(lambda x: np.arange(x.shape[0])).values)
-    allh.set_index(['individual_id', 'idx'], inplace=True)
-    somf = pd.read_excel('indiv_cheek_hair.xlsx', 0)
-    allh = allh.reset_index().merge(somf, left_on='individual_id', right_on='individual_id').set_index(['individual_id', 'idx'])
-    model_args = zip(*allh.groupby(level=1).apply(lambda x: [x['hair'].values, x['cheek'].iloc[0], x['blood'].iloc[0]]).tolist())
+def max_like_B(do_sims):
+    if do_sims:
+        allh = pd.read_csv('sim_hairs_data_f0p6_n1_78_n2_20.tsv', sep='\t')
+        allh.set_index(['individual_id', 'idx'], inplace=True)
+
+    else:
+        allh = pd.read_excel('all_hair_freqs.xlsx', 0)
+        del allh['som']
+        allh['idx'] = np.concatenate(allh.groupby('individual_id').apply(lambda x: np.arange(x.shape[0])).values)
+        allh.set_index(['individual_id', 'idx'], inplace=True)
+        somf = pd.read_excel('indiv_cheek_hair.xlsx', 0)
+        allh = allh.reset_index().merge(somf, left_on='individual_id', right_on='individual_id').set_index(['individual_id', 'idx'])
+
+    model_args = zip(*allh.groupby(level=0).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
+
 
     def target(x, args):
         val = -1*log_post_B_uniform_two_bots(x, *args)
         print x, -val
         return val
-
-
 
     with np.errstate(all='ignore'):
         p0_f = npr.uniform(0, 1)
@@ -167,7 +171,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.max_like:
-        max_like_B()
+        max_like_B(args.sims)
     elif args.log_unif:
         analysis_B(do_logunif=True)
     else:
