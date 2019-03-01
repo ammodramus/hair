@@ -19,9 +19,6 @@ import mpmath as mp
 mp.dps = 20
 
 
-dat = pd.read_excel('som_hair_freqs.xlsx', 0)
-
-
 @jit
 def convolve_binom_and_beta_sum(x, n, p):
     logterms = np.zeros(n+1)
@@ -49,12 +46,19 @@ def log_convolve_binom_and_beta_mp(x, n, p):
     return float(logprob)
 
 def log_convolve_binom_and_beta(x, n, p):
-    if x == 0 or x == 1.0 or p == 0.0 or p == 1.0:
-        return -np.inf
+    if p == 0.0 or p == 1.0:
+        if x > 0 and x < 1:
+            return -np.inf
+    if (p == 1.0 and x == 1.0) or (p == 0.0 and x == 0.0):
+        return 0.0
+    if x == 0.0:
+        return st.binom.logpmf(0, n, p)
+    elif x == 1.0:
+        return st.binom.logpmf(n, n, p)
     logprob = np.log(-n*(n-1)*(p-1)*p*((p-1)*(x-1))**(n-2)*scipy.special.hyp2f1(1-n, 2-n, 2, x*p/((x-1)*(p-1))))
     if not np.isfinite(logprob):
         return log_convolve_binom_and_beta_mp(x, n, p)
-    return float(logprob)
+    return logprob
 
 
 #################
@@ -73,10 +77,10 @@ def log_likelihood_model_B(params, hair_freqs, blood_freqs, cheek_freqs):
             logprob = log_binom_prob   # the logprobability for this outcome of the first bottleneck
             p_B1 = float(k)/N1
             for hair_ij in hair_i:
-                if hair_ij == 0.0:
-                    hair_ij += 1e-5
-                elif hair_ij == 1.0:
-                    hair_ij -= 1e-5
+                #if hair_ij == 0.0:
+                #    hair_ij += 1e-5
+                #elif hair_ij == 1.0:
+                #    hair_ij -= 1e-5
                 val = log_convolve_binom_and_beta(hair_ij, N2, p_B1)
                 if val == -np.inf and p_B1 > 0 and p_B1 < 1:
                     print hair_ij, p_B1, val
