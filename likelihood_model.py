@@ -162,9 +162,8 @@ if __name__ == '__main__':
             description='perform MCMC for hairs',
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--log-unif', help='log-uniform priors', action='store_true')
-    parser.add_argument('--max-like', help='maximum-likelihood estimation')
+    parser.add_argument('--max-like', help='maximum-likelihood estimation', action='store_true')
     parser.add_argument('--sims', action='store_true')
-    parser.add_argument('--max-like', help='maximum-likelihood estimation')
     args = parser.parse_args()
 
     if args.max_like:
