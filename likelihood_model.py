@@ -84,7 +84,7 @@ def analysis_B(do_logunif):
     with np.errstate(all='ignore'):
         n_walkers = 100
         if do_logunif:
-            pass
+            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_loguniform, args=model_args, threads=20)
         else:
             samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_uniform, args=model_args, threads=20)
         p0_f = npr.uniform(0, 1, size=n_walkers)
@@ -100,6 +100,37 @@ def analysis_B(do_logunif):
 
     print '# saving {}'.format(unif_str)
     np.savetxt('positions_N_{}_B.txt'.format(unif_str), np.concatenate(positions), delimiter=',')
+
+
+
+def analysis_sims(do_logunif):
+    unif_str = 'logunif' if do_logunif else 'unif'
+    allh = pd.read_csv('sim_hairs_data.tsv', sep='\t')
+    allh.set_index(['individual_id', 'idx'], inplace=True)
+    model_args = zip(*allh.groupby(level=1).apply(lambda x: [x['hair'].values, x['cheek'].iloc[0], x['blood'].iloc[0]]).tolist())
+
+
+    with np.errstate(all='ignore'):
+        n_walkers = 100
+        if do_logunif:
+            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_loguniform, args=model_args, threads=20)
+        else:
+            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_uniform, args=model_args, threads=20)
+        p0_f = npr.uniform(0, 1, size=n_walkers)
+        p0_N1 = npr.uniform(1, 500+1, size=n_walkers)
+        p0_N2 = npr.uniform(1, 500+1, size=n_walkers)
+        p0 = np.column_stack((p0_f, p0_N1, p0_N2))
+        positions = []
+        n_iter = 20000
+        for i, (chainpos, chainlnprobs, _) in enumerate(samp.sample(p0 = p0, iterations=n_iter)):
+            chainpos = np.column_stack((chainlnprobs[:,np.newaxis], chainpos))
+            np.savetxt(sys.stdout, chainpos, delimiter='\t')
+            positions.append(chainpos)
+
+    print '# saving {}'.format(unif_str)
+    np.savetxt('positions_sims_N_{}_B.txt'.format(unif_str), np.concatenate(positions), delimiter=',')
+
+
 
 def max_like_B():
     allh = pd.read_excel('all_hair_freqs.xlsx', 0)
@@ -132,6 +163,7 @@ if __name__ == '__main__':
             formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--log-unif', help='log-uniform priors', action='store_true')
     parser.add_argument('--max-like', help='maximum-likelihood estimation')
+    parser.add_argument('--sims', action='store_true')
     args = parser.parse_args()
 
     if args.max_like:
