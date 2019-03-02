@@ -83,9 +83,9 @@ def analysis_B(do_logunif):
     with np.errstate(all='ignore'):
         n_walkers = 100
         if do_logunif:
-            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_loguniform, args=model_args, threads=20)
+            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_loguniform, args=model_args, threads=NUM_THREADS)
         else:
-            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_uniform, args=model_args, threads=20)
+            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_uniform, args=model_args, threads=NUM_THREADS)
         p0_f = npr.uniform(0, 1, size=n_walkers)
         p0_N1 = npr.uniform(1, 500+1, size=n_walkers)
         p0_N2 = npr.uniform(1, 500+1, size=n_walkers)
@@ -112,9 +112,9 @@ def analysis_sims(do_logunif):
     with np.errstate(all='ignore'):
         n_walkers = 100
         if do_logunif:
-            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_loguniform, args=model_args, threads=20)
+            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_loguniform, args=model_args, threads=NUM_THREADS)
         else:
-            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_uniform, args=model_args, threads=20)
+            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_uniform, args=model_args, threads=NUM_THREADS)
         p0_f = npr.uniform(0, 1, size=n_walkers)
         p0_N1 = npr.uniform(1, 500+1, size=n_walkers)
         p0_N2 = npr.uniform(1, 500+1, size=n_walkers)
@@ -160,6 +160,10 @@ def max_like_B(do_sims):
         res = opt.minimize(target, x0=p0, args=model_args, method='Nelder-Mead')
         print res
 
+
+NUM_THREADS = None
+
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(
@@ -168,7 +172,10 @@ if __name__ == '__main__':
     parser.add_argument('--log-unif', help='log-uniform priors', action='store_true')
     parser.add_argument('--max-like', help='maximum-likelihood estimation', action='store_true')
     parser.add_argument('--sims', action='store_true')
+    parser.add_argument('--num-threads', type=int, default=20)
     args = parser.parse_args()
+
+    NUM_THREADS = args.num_threads
 
     if args.max_like:
         max_like_B(args.sims)
