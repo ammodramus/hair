@@ -149,10 +149,17 @@ def max_like_B(do_sims):
     model_args = zip(*allh.groupby(level=0).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
 
 
+
     def target(x, args):
         val = -1*log_post_B_uniform_two_bots(x, *args)
         print x, -val
         return val
+
+    if do_sims:
+        true_params = np.array((0.6, 78, 20))
+        true_loglike = log_post_B_uniform_two_bots(true_params, *model_args)
+        print 'true params:', true_params
+        print 'true loglike:', true_loglike
 
     with np.errstate(all='ignore'):
         p0_f = npr.uniform(0, 1)
