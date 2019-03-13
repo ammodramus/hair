@@ -26,9 +26,9 @@ def log_prior_B_uniform(params, *args):
     f, N1, N2 = params
     if f < 0 or f > 1:
         return -np.inf
-    if N1 <= 1 or N1 >= 500:
+    if N1 <= 1 or N1 >= 501:
         return -np.inf
-    if N2 <= 1 or N2 >= 500:
+    if N2 <= 1 or N2 >= 501:
         return -np.inf
     return 0.0
 
@@ -36,7 +36,6 @@ def log_post_B_uniform(params, *args):
     log_prior = log_prior_B_uniform(params)
     if not np.isfinite(log_prior):
         return log_prior
-    #val = log_prior + likm.log_likelihood_model_B_two_bots(params, *args)
     val = log_prior + likm.log_likelihood_model_B_one_bot(params, *args)
     return val
 
@@ -49,23 +48,36 @@ def log_post_B_uniform_two_bots(params, *args):
     return val
 
 
-def log_prior_B_loguniform(params, *args):
+def log_prior_B_loguniform_two_bots(params, *args):
     ''' loguniform in f, N1, and N2 '''
     f, N1, N2 = params
     if f < 0 or f > 1:
         return -np.inf
-    if N1 <= 1 or N1 >= 500+1:
+    if N1 <= 2 or N1 >= 500+1:
         return -np.inf
-    if N2 <= 1 or N2 >= 500+1:
+    if N2 <= 2 or N2 >= 500+1:
         return -np.inf
     return 1/N1 + 1/N2
 
 
+def log_prior_B_loguniform_one_bot(params, *args):
+    ''' loguniform in f, N1, and N2 '''
+    f = params[0]
+    N1, N2 = params[1:].astype(int).abs()
+    if f < 0 or f > 1:
+        return -np.inf
+    if N1 <= 2 or N1 >= 500+1:
+        return -np.inf
+    if N2 <= 2 or N2 >= 500+1:
+        return -np.inf
+    return np.log(1.0/N1 + 1.0/N2)
+
+
 def log_post_B_loguniform(params, *args):
-    log_prior = log_prior_B_loguniform(params)
+    log_prior = log_prior_B_loguniform_two_bots(params)
+
     if not np.isfinite(log_prior):
         return log_prior
-    #val = log_prior + log_likelihood_model_B_two_bots(params, *args)
     val = log_prior + likm.log_likelihood_model_B_one_bot(params, *args)
     return val
 
@@ -151,60 +163,56 @@ def max_like_B(do_sims):
 
 
     def target(x, args):
-        val = -1*log_post_B_uniform_two_bots(x, *args)
+        val = -1*likm.log_likelihood_model_B_two_bots(x, *args)
         print x, -val
         return val
 
     if do_sims:
         true_params = np.array((0.6, 78, 20))
-        true_loglike = log_post_B_uniform_two_bots(true_params, *model_args)
+        true_loglike = likm.log_likelihood_model_B_two_bots(true_params, *model_args)
         print 'true params:', true_params
         print 'true loglike:', true_loglike
 
     with np.errstate(all='ignore'):
         p0_f = npr.uniform(0, 1)
-        p0_N1 = npr.uniform(1, 500+1)
-        p0_N2 = npr.uniform(1, 500+1)
+        p0_N1 = npr.uniform(2, 500+1)
+        p0_N2 = npr.uniform(2, 500+1)
         p0 = np.array((p0_f, p0_N1, p0_N2))
         res = opt.minimize(target, x0=p0, args=model_args, method='Nelder-Mead')
         print res
 
     def target_N1_inf(x, args):
-        params = np.zeros(3)
-        params[0] = x[0]  # f
-        params[2] = x[1]  # f
-        params[1] = 2000
-        val = -1*log_post_B_uniform_two_bots(params, *args)
-        print x, -val
-        return val
+        target_val = -1*likm.log_likelihood_model_B_two_bots_N1_inf(x, *model_args)
+        print x, -target_val
+        return target_val
 
     print '------------------'
     print 'N1 large:'
     with np.errstate(all='ignore'):
         p0_f_N1_inf = npr.uniform(0, 1)
-        p0_N1_N1_inf = npr.uniform(1, 500+1)
+        p0_N1_N1_inf = npr.uniform(2, 500+1)
         p0 = np.array((p0_f_N1_inf, p0_N1_N1_inf))
         res = opt.minimize(target_N1_inf, x0=p0, args=model_args, method='Nelder-Mead')
         print res
 
 
-    def target_N2_inf(x, args):
-        params = np.zeros(3)
-        params[0] = x[0]  # f
-        params[1] = x[1]  # f
-        params[2] = 2000
-        val = -1*log_post_B_uniform_two_bots(params, *args)
-        print x, -val
-        return val
+    # this doesn't work because there are both zero and non-zero frequencies.
+    # The beta distribution can't handle zero.
 
-    print '------------------'
-    print 'N2 large:'
-    with np.errstate(all='ignore'):
-        p0_f_N2_inf = npr.uniform(0, 1)
-        p0_N1_N2_inf = npr.uniform(1, 500+1)
-        p0 = np.array((p0_f_N2_inf, p0_N2_N2_inf))
-        res = opt.minimize(target_N2_inf, x0=p0, args=model_args, method='Nelder-Mead')
-        print res
+    #def target_N2_inf(x, args):
+    #    target_val = -1*likm.log_likelihood_model_B_two_bots_N2_inf(x, *model_args)
+    #    print x, -target_val
+    #    return target_val
+
+    #print '------------------'
+    #print 'N2 large:'
+    #with np.errstate(all='ignore'):
+    #    p0_f_N2_inf = npr.uniform(0, 1)
+    #    p0_N1_N2_inf = npr.uniform(2, 500+1)
+    #    p0 = np.array((p0_f_N2_inf, p0_N1_N2_inf))
+    #    res = opt.minimize(target_N2_inf, x0=p0, args=model_args, method='Nelder-Mead')
+    #    print res
+    #'''
 
 
 NUM_THREADS = None
