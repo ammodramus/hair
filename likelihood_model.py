@@ -82,14 +82,18 @@ def log_post_B_loguniform(params, *args):
     return val
 
 
-def analysis_B(do_logunif):
+def analysis_B(do_logunif, do_sims):
     unif_str = 'logunif' if do_logunif else 'unif'
-    allh = pd.read_excel('all_hair_freqs.xlsx', 0)
-    del allh['som']
-    allh['idx'] = np.concatenate(allh.groupby('individual_id').apply(lambda x: np.arange(x.shape[0])).values)
-    allh.set_index(['individual_id', 'idx'], inplace=True)
-    somf = pd.read_excel('indiv_cheek_hair.xlsx', 0)
-    allh = allh.reset_index().merge(somf, left_on='individual_id', right_on='individual_id').set_index(['individual_id', 'idx'])
+    if do_sims:
+        allh = pd.read_csv('sim_hairs_data_f0p6_n1_78_n2_20.tsv', sep='\t')
+        allh.set_index(['individual_id', 'idx'], inplace=True)
+    else:
+        allh = pd.read_excel('all_hair_freqs.xlsx', 0)
+        del allh['som']
+        allh['idx'] = np.concatenate(allh.groupby('individual_id').apply(lambda x: np.arange(x.shape[0])).values)
+        allh.set_index(['individual_id', 'idx'], inplace=True)
+        somf = pd.read_excel('indiv_cheek_hair.xlsx', 0)
+        allh = allh.reset_index().merge(somf, left_on='individual_id', right_on='individual_id').set_index(['individual_id', 'idx'])
     model_args = zip(*allh.groupby(level=0).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
 
 
@@ -111,38 +115,8 @@ def analysis_B(do_logunif):
             positions.append(chainpos)
 
     print '# saving {}'.format(unif_str)
-    np.savetxt('positions_N_{}_B.txt'.format(unif_str), np.concatenate(positions), delimiter=',')
-
-
-
-def analysis_sims(do_logunif):
-    unif_str = 'logunif' if do_logunif else 'unif'
-
-    allh = pd.read_csv('sim_hairs_data_f0p6_n1_78_n2_20.tsv', sep='\t')
-    allh.set_index(['individual_id', 'idx'], inplace=True)
-    model_args = zip(*allh.groupby(level=0).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
-
-
-    with np.errstate(all='ignore'):
-        n_walkers = 100
-        if do_logunif:
-            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_loguniform, args=model_args, threads=NUM_THREADS)
-        else:
-            samp = emcee.EnsembleSampler(n_walkers, 3, log_post_B_uniform, args=model_args, threads=NUM_THREADS)
-        p0_f = npr.uniform(0, 1, size=n_walkers)
-        p0_N1 = npr.uniform(1, 500+1, size=n_walkers)
-        p0_N2 = npr.uniform(1, 500+1, size=n_walkers)
-        p0 = np.column_stack((p0_f, p0_N1, p0_N2))
-        positions = []
-        n_iter = 20000
-        for i, (chainpos, chainlnprobs, _) in enumerate(samp.sample(p0 = p0, iterations=n_iter)):
-            chainpos = np.column_stack((chainlnprobs[:,np.newaxis], chainpos))
-            np.savetxt(sys.stdout, chainpos, delimiter='\t')
-            positions.append(chainpos)
-
-    print '# saving {}'.format(unif_str)
-    np.savetxt('positions_sims_N_{}_B.txt'.format(unif_str), np.concatenate(positions), delimiter=',')
-
+    sims_str = '_sims' if do_sims else ''
+    np.savetxt('positions_N_{}_B{}.txt'.format(unif_str, sims_str), np.concatenate(positions), delimiter=',')
 
 
 def max_like_B(do_sims):
@@ -233,7 +207,5 @@ if __name__ == '__main__':
 
     if args.max_like:
         max_like_B(args.sims)
-    elif args.log_unif:
-        analysis_B(do_logunif=True)
     else:
-        analysis_B(do_logunif=False)
+        analysis_B(do_logunif=args.log_unif, sims=args.sims)
