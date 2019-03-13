@@ -114,6 +114,113 @@ def log_likelihood_model_B(params, hair_freqs, blood_freqs, cheek_freqs):
     return total_loglike
 
 
+def log_likelihood_model_B_N1_inf(params, hair_freqs, blood_freqs, cheek_freqs):
+    f, N2 = params
+    total_loglike = 0.0
+    for hair_i, cheek_i, blood_i in zip(hair_freqs, cheek_freqs, blood_freqs):
+        s = f*blood_i + (1-f)*cheek_i
+        for hair_ij in hair_i:
+            val = log_convolve_binom_and_beta(hair_ij, N2, s)
+            if val == -np.inf and p_B1 > 0 and p_B1 < 1:
+                print 'bad convolution:', hair_ij, N2, p_B1, '--', val
+            total_loglike += val
+    return total_loglike
+
+
+def log_likelihood_model_B_two_bots_N1_inf(params, *args):
+    f, N2 = params
+    if f < 0 or f > 1:
+        return -np.inf
+    if N2 < 1:
+        return -np.inf
+    N2a = int(np.floor(N2))
+    N2b = int(np.ceil(N2))
+    
+    frac_b = (N2-N2a)/(N2b-N2a)
+
+    if np.isnan(frac_b):
+        frac_b = 1.0
+
+    loglike_a = log_likelihood_model_B_N1_inf((f, N2a), *args)
+    loglike_b = log_likelihood_model_B_N1_inf((f, N2b), *args)
+
+    weight_a = (1-frac_b)
+    weight_b = frac_b
+    
+    loglikes = [loglike_a, loglike_b]
+    weights = [weight_a, weight_b]
+    val = scipy.special.logsumexp(loglikes, b=weights)
+    return val
+
+
+def log_likelihood_model_B_two_bots_N1_inf(params, *args):
+    f, N2 = params
+    if f < 0 or f > 1:
+        return -np.inf
+    if N2 < 1:
+        return -np.inf
+    N2a = int(np.floor(N2))
+    N2b = int(np.ceil(N2))
+    
+    frac_b = (N2-N2a)/(N2b-N2a)
+
+    if np.isnan(frac_b):
+        frac_b = 1.0
+
+    loglike_a = log_likelihood_model_B_N1_inf((f, N2a), *args)
+    loglike_b = log_likelihood_model_B_N1_inf((f, N2b), *args)
+
+    weight_a = (1-frac_b)
+    weight_b = frac_b
+    
+    loglikes = [loglike_a, loglike_b]
+    weights = [weight_a, weight_b]
+    val = scipy.special.logsumexp(loglikes, b=weights)
+    return val
+
+
+#def log_likelihood_model_B_N2_inf(params, hairfreqs, blood_freqs, cheek_freqs):
+#    f, N1 = params
+#    total_loglike = 0.0
+#    for hair_i, cheek_i, blood_i in zip(hair_freqs, cheek_freqs, blood_freqs):
+#        s = f*blood_i + (1-f)*cheek_i
+#        freq_loglikes = []
+#        for i in range(N1+1):
+#            freq_loglike = scipy.stats.binom.logpmf(i, N1, s)
+#            for hair_ij in hair_i:
+#                val = scipy.stats.beta.logpdf(hair_ij, i, N1-i)
+#                freq_loglike += val
+#        freq_loglikes.append(freq_loglike)
+#        indiv_loglike = scipy.special.logsumexp(freq_loglikes)
+#        total_loglike += indiv_loglike
+#    return total_loglike
+
+def log_likelihood_model_B_two_bots_N2_inf(params, *args):
+    f, N1 = params
+    if f < 0 or f > 1:
+        return -np.inf
+    if N1 < 1:
+        return -np.inf
+    N1a = int(np.floor(N1))
+    N1b = int(np.ceil(N1))
+    
+    frac_b = (N1-N1a)/(N1b-N1a)
+
+    if np.isnan(frac_b):
+        frac_b = 1.0
+
+    loglike_a = log_likelihood_model_B_N2_inf((f, N1a), *args)
+    loglike_b = log_likelihood_model_B_N2_inf((f, N1b), *args)
+
+    weight_a = (1-frac_b)
+    weight_b = frac_b
+    
+    loglikes = [loglike_a, loglike_b]
+    weights = [weight_a, weight_b]
+    val = scipy.special.logsumexp(loglikes, b=weights)
+    return val
+
+
 def log_likelihood_model_B_array(params, hair_freqs, blood_freqs, cheek_freqs):
     tup_params = tuple(params)
     return log_likelihood_model_B(tup_params, hair_freqs, blood_freqs, cheek_freqs)
@@ -156,17 +263,13 @@ def log_likelihood_model_B_two_bots(params, *args):
 
 
 def log_likelihood_model_B_one_bot(params, *args):
-    f, N1, N2 = params
+    f = params[0]
+    N1, N2 = params[1:].astype(int)
     if f < 0 or f > 1:
         return -np.inf
     if N1 < 2:
         return -np.inf
     if N2 < 2:
         return -np.inf
-    N1a = int(np.floor(N1))
-    N2a = int(np.floor(N2))
-    
-    loglike_aa = log_likelihood_model_B_array((f, N1a, N2a), *args)
-    return loglike_aa
-
-
+    loglike = log_likelihood_model_B_array((f, N1, N2), *args)
+    return loglike
