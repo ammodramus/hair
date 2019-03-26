@@ -82,10 +82,14 @@ def log_post_B_loguniform(params, *args):
     return val
 
 
-def analysis_B(do_logunif):
+def analysis_B(do_logunif, sims):
     unif_str = 'logunif' if do_logunif else 'unif'
-    allh = pd.read_csv('fixed_hair_data_26032019.tsv', sep='\t')
-    allh.set_index(['individual_id', 'position', 'idx'], inplace=True)
+    if sims:
+        allh = pd.read_csv('sim_hairs_data_f0p6_n1_78_n2_20.tsv', sep='\t')
+        allh.set_index(['individual_id', 'idx'], inplace=True)
+    else:
+        allh = pd.read_csv('fixed_hair_data_26032019.tsv', sep='\t')
+        allh.set_index(['individual_id', 'position', 'idx'], inplace=True)
     model_args = zip(*allh.groupby(level=[0,1]).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
 
 
@@ -225,7 +229,5 @@ if __name__ == '__main__':
 
     if args.max_like:
         max_like_B(args.sims)
-    elif args.log_unif:
-        analysis_B(do_logunif=True)
     else:
-        analysis_B(do_logunif=False)
+        analysis_B(do_logunif=args.log_unif, sims=args.sims)
