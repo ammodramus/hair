@@ -84,13 +84,9 @@ def log_post_B_loguniform(params, *args):
 
 def analysis_B(do_logunif):
     unif_str = 'logunif' if do_logunif else 'unif'
-    allh = pd.read_excel('all_hair_freqs.xlsx', 0)
-    del allh['som']
-    allh['idx'] = np.concatenate(allh.groupby('individual_id').apply(lambda x: np.arange(x.shape[0])).values)
-    allh.set_index(['individual_id', 'idx'], inplace=True)
-    somf = pd.read_excel('indiv_cheek_hair.xlsx', 0)
-    allh = allh.reset_index().merge(somf, left_on='individual_id', right_on='individual_id').set_index(['individual_id', 'idx'])
-    model_args = zip(*allh.groupby(level=0).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
+    allh = pd.read_csv('fixed_hair_data_26032019.tsv', sep='\t')
+    allh.set_index(['individual_id', 'position', 'idx'], inplace=True)
+    model_args = zip(*allh.groupby(level=[0,1]).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
 
 
     with np.errstate(all='ignore'):
@@ -151,14 +147,10 @@ def max_like_B(do_sims):
         allh.set_index(['individual_id', 'idx'], inplace=True)
 
     else:
-        allh = pd.read_excel('all_hair_freqs.xlsx', 0)
-        del allh['som']
-        allh['idx'] = np.concatenate(allh.groupby('individual_id').apply(lambda x: np.arange(x.shape[0])).values)
-        allh.set_index(['individual_id', 'idx'], inplace=True)
-        somf = pd.read_excel('indiv_cheek_hair.xlsx', 0)
-        allh = allh.reset_index().merge(somf, left_on='individual_id', right_on='individual_id').set_index(['individual_id', 'idx'])
+        allh = pd.read_csv('fixed_hair_data_26032019.tsv', sep='\t')
+        allh.set_index(['individual_id', 'position', 'idx'], inplace=True)
 
-    model_args = zip(*allh.groupby(level=0).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
+    model_args = zip(*allh.groupby(level=[0,1]).apply(lambda x: [x['hair'].values, x['blood'].iloc[0], x['cheek'].iloc[0]]).tolist())
 
 
 
